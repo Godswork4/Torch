@@ -33,7 +33,8 @@ export function LandingPage({ onConnect }: LandingPageProps) {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 sm:mb-20">
             <div className="relative inline-block mb-8 sm:mb-12">
-              <div className="absolute inset-0 blur-3xl bg-cyan-500/30 animate-pulse"></div>
+              <div className="absolute inset-0 blur-[100px] bg-cyan-500/50 animate-pulse"></div>
+              <div className="absolute inset-0 blur-[80px] bg-blue-500/40 animate-pulse delay-75"></div>
               <Flame className="relative w-32 h-32 sm:w-48 sm:h-48 md:w-56 md:h-56 text-white mx-auto drop-shadow-2xl" />
             </div>
 
@@ -63,25 +64,46 @@ export function LandingPage({ onConnect }: LandingPageProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 max-w-4xl mx-auto mt-16 sm:mt-24">
-            <div className="text-center p-6 sm:p-8 bg-slate-900/50 backdrop-blur rounded-2xl border border-slate-800/50">
-              <img src="https://cryptologos.cc/logos/hashpack-pack-logo.png" alt="HashPack" className="h-8 sm:h-10 mx-auto mb-3 opacity-80" />
-              <span className="text-sm sm:text-base text-slate-400 font-medium">HashPack</span>
-            </div>
-            <div className="text-center p-6 sm:p-8 bg-slate-900/50 backdrop-blur rounded-2xl border border-slate-800/50">
-              <div className="h-8 sm:h-10 mx-auto mb-3 flex items-center justify-center">
-                <span className="text-lg sm:text-xl font-bold text-cyan-400">✓</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 max-w-5xl mx-auto mt-16 sm:mt-24 px-4">
+            <div className="relative group text-center p-6 sm:p-8 bg-slate-900/50 backdrop-blur rounded-2xl border border-slate-800/50 hover:border-cyan-500/50 transition-all duration-300">
+              <div className="absolute inset-0 blur-2xl bg-cyan-500/0 group-hover:bg-cyan-500/10 transition-all duration-300 rounded-2xl"></div>
+              <div className="relative">
+                <img
+                  src="https://cryptologos.cc/logos/hedera-hbar-logo.png"
+                  alt="Hedera Hashgraph"
+                  className="h-10 sm:h-12 mx-auto mb-4 opacity-90 group-hover:opacity-100 transition-opacity"
+                />
+                <span className="text-sm sm:text-base text-slate-400 font-medium group-hover:text-slate-300 transition-colors">Hedera Hashgraph</span>
               </div>
-              <span className="text-sm sm:text-base text-slate-400 font-medium">CertiK</span>
             </div>
-            <div className="text-center p-6 sm:p-8 bg-slate-900/50 backdrop-blur rounded-2xl border border-slate-800/50">
-              <img src="https://cryptologos.cc/logos/hedera-hbar-logo.png" alt="Hedera" className="h-8 sm:h-10 mx-auto mb-3 opacity-80" />
-              <span className="text-sm sm:text-base text-slate-400 font-medium">Hedera</span>
+            <div className="relative group text-center p-6 sm:p-8 bg-slate-900/50 backdrop-blur rounded-2xl border border-slate-800/50 hover:border-blue-500/50 transition-all duration-300">
+              <div className="absolute inset-0 blur-2xl bg-blue-500/0 group-hover:bg-blue-500/10 transition-all duration-300 rounded-2xl"></div>
+              <div className="relative">
+                <img
+                  src="https://pbs.twimg.com/profile_images/1707048391501881344/1-dTIcke_400x400.jpg"
+                  alt="CertiK"
+                  className="h-10 sm:h-12 mx-auto mb-4 rounded-lg opacity-90 group-hover:opacity-100 transition-opacity"
+                />
+                <span className="text-sm sm:text-base text-slate-400 font-medium group-hover:text-slate-300 transition-colors">CertiK Secured</span>
+              </div>
+            </div>
+            <div className="relative group text-center p-6 sm:p-8 bg-slate-900/50 backdrop-blur rounded-2xl border border-slate-800/50 hover:border-purple-500/50 transition-all duration-300">
+              <div className="absolute inset-0 blur-2xl bg-purple-500/0 group-hover:bg-purple-500/10 transition-all duration-300 rounded-2xl"></div>
+              <div className="relative">
+                <img
+                  src="https://cryptologos.cc/logos/hashpack-pack-logo.png"
+                  alt="HashPack"
+                  className="h-10 sm:h-12 mx-auto mb-4 opacity-90 group-hover:opacity-100 transition-opacity"
+                />
+                <span className="text-sm sm:text-base text-slate-400 font-medium group-hover:text-slate-300 transition-colors">HashPack Wallet</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/30 via-transparent to-transparent pointer-events-none"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-[120px] pointer-events-none"></div>
       </main>
     </div>
   );
