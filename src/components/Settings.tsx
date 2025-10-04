@@ -1,36 +1,125 @@
-import { Mail, Calendar, MessageSquare, Twitter, Link, Bell, Volume2, Shield, CheckCircle2 } from 'lucide-react';
+import { Mail, Calendar, MessageSquare, Link, Bell, Volume2, Shield, CheckCircle2, RefreshCw, Apple } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { getIntegrations, deleteIntegration, type Integration } from '../lib/integrations';
+import { getOAuthUrl, openOAuthWindow, triggerSync, type IntegrationService } from '../lib/oauth';
 
 export function Settings() {
-  const integrations = [
-    {
-      icon: Mail,
-      name: 'Gmail',
-      description: 'Sync your inbox and get AI summaries',
-      connected: true,
-      lastSync: '2 minutes ago',
-    },
-    {
-      icon: Calendar,
-      name: 'Google Calendar',
-      description: 'Import events and task deadlines',
-      connected: true,
-      lastSync: '1 hour ago',
-    },
-    {
-      icon: MessageSquare,
-      name: 'Discord',
-      description: 'Track mentions and important messages',
-      connected: false,
-      lastSync: null,
-    },
-    {
-      icon: Twitter,
-      name: 'Twitter / X',
-      description: 'Monitor mentions and community updates',
-      connected: false,
-      lastSync: null,
-    },
-  ];
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState<IntegrationService | null>(null);
+
+  useEffect(() => {
+    loadIntegrations();
+  }, []);
+
+  const loadIntegrations = async () => {
+    try {
+      const userId = 'mock-user-id';
+      const data = await getIntegrations(userId);
+      setIntegrations(data);
+    } catch (error) {
+      console.error('Failed to load integrations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConnect = async (service: IntegrationService) => {
+    try {
+      setConnecting(service);
+      const authUrl = await getOAuthUrl(service);
+      openOAuthWindow(authUrl, () => {
+        setConnecting(null);
+        loadIntegrations();
+      });
+    } catch (error) {
+      console.error('Failed to connect integration:', error);
+      setConnecting(null);
+    }
+  };
+
+  const handleDisconnect = async (integrationId: string) => {
+    try {
+      await deleteIntegration(integrationId);
+      await loadIntegrations();
+    } catch (error) {
+      console.error('Failed to disconnect integration:', error);
+    }
+  };
+
+  const handleSync = async (integration: Integration) => {
+    try {
+      setSyncing(integration.id);
+      await triggerSync(integration.service as IntegrationService, integration.id);
+      await loadIntegrations();
+    } catch (error) {
+      console.error('Failed to sync integration:', error);
+    } finally {
+      setSyncing(null);
+    }
+  };
+
+  const getIntegrationIcon = (service: string) => {
+    switch (service) {
+      case 'gmail':
+        return Mail;
+      case 'google_calendar':
+        return Calendar;
+      case 'apple_calendar':
+        return Apple;
+      case 'discord':
+        return MessageSquare;
+      default:
+        return Link;
+    }
+  };
+
+  const getIntegrationName = (service: string) => {
+    switch (service) {
+      case 'gmail':
+        return 'Gmail';
+      case 'google_calendar':
+        return 'Google Calendar';
+      case 'apple_calendar':
+        return 'Apple Calendar';
+      case 'discord':
+        return 'Discord';
+      default:
+        return service;
+    }
+  };
+
+  const getIntegrationDescription = (service: string) => {
+    switch (service) {
+      case 'gmail':
+        return 'Sync your inbox and get AI summaries';
+      case 'google_calendar':
+        return 'Import events and task deadlines';
+      case 'apple_calendar':
+        return 'Sync iCloud calendar events';
+      case 'discord':
+        return 'Track mentions and important messages';
+      default:
+        return 'Connect this service';
+    }
+  };
+
+  const formatLastSync = (lastSync: string | null) => {
+    if (!lastSync) return null;
+    const date = new Date(lastSync);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+    return `${Math.floor(diff / 86400)} days ago`;
+  };
+
+  const availableServices: IntegrationService[] = ['gmail', 'google_calendar', 'discord'];
+  const connectedServices = new Set(integrations.map(i => i.service));
+  const availableIntegrations = availableServices.filter(s => !connectedServices.has(s));
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -46,46 +135,91 @@ export function Settings() {
             Integrations
           </h2>
 
-          <div className="space-y-4">
-            {integrations.map((integration) => {
-              const Icon = integration.icon;
-              return (
-                <div
-                  key={integration.name}
-                  className="flex items-center justify-between p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-slate-700/50 rounded-lg flex items-center justify-center">
-                      <Icon className="w-6 h-6 text-cyan-400" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">{integration.name}</span>
-                        {integration.connected && (
-                          <CheckCircle2 className="w-4 h-4 text-green-400" />
+          {loading ? (
+            <div className="text-center py-8 text-slate-400">Loading integrations...</div>
+          ) : (
+            <div className="space-y-4">
+              {integrations.map((integration) => {
+                const Icon = getIntegrationIcon(integration.service);
+                return (
+                  <div
+                    key={integration.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all gap-4"
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="w-12 h-12 bg-slate-700/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-6 h-6 text-cyan-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold">{getIntegrationName(integration.service)}</span>
+                          {integration.is_active && (
+                            <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+                          )}
+                        </div>
+                        <div className="text-sm text-slate-400">{getIntegrationDescription(integration.service)}</div>
+                        {integration.last_sync && (
+                          <div className="text-xs text-slate-500 mt-1">
+                            Last synced: {formatLastSync(integration.last_sync)}
+                          </div>
                         )}
                       </div>
-                      <div className="text-sm text-slate-400">{integration.description}</div>
-                      {integration.connected && integration.lastSync && (
-                        <div className="text-xs text-slate-500 mt-1">
-                          Last synced: {integration.lastSync}
-                        </div>
-                      )}
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleSync(integration)}
+                        disabled={syncing === integration.id}
+                        className="px-3 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${syncing === integration.id ? 'animate-spin' : ''}`} />
+                        Sync
+                      </button>
+                      <button
+                        onClick={() => handleDisconnect(integration.id)}
+                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50"
+                      >
+                        Disconnect
+                      </button>
                     </div>
                   </div>
-                  <button
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      integration.connected
-                        ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50'
-                        : 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/50'
-                    }`}
-                  >
-                    {integration.connected ? 'Disconnect' : 'Connect'}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+
+              {availableIntegrations.length > 0 && (
+                <>
+                  <div className="pt-4 border-t border-slate-700/50">
+                    <h3 className="text-sm font-medium text-slate-400 mb-3">Available Integrations</h3>
+                  </div>
+                  {availableIntegrations.map((service) => {
+                    const Icon = getIntegrationIcon(service);
+                    return (
+                      <div
+                        key={service}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all gap-4"
+                      >
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="w-12 h-12 bg-slate-700/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Icon className="w-6 h-6 text-slate-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold mb-1">{getIntegrationName(service)}</div>
+                            <div className="text-sm text-slate-400">{getIntegrationDescription(service)}</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleConnect(service)}
+                          disabled={connecting === service}
+                          className="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/50 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {connecting === service ? 'Connecting...' : 'Connect'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          )}
         </section>
 
         <section className="bg-slate-900/50 backdrop-blur-lg border border-slate-800/50 rounded-2xl p-6">
