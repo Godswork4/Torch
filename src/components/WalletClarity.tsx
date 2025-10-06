@@ -1,8 +1,29 @@
-import { Search, TrendingUp, AlertTriangle, Clock, Sparkles } from 'lucide-react';
+import { Search, TrendingUp, AlertTriangle, Clock, Sparkles, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { analyzeWallet, type WalletAnalysis } from '../lib/hedera';
 
 export function WalletClarity() {
   const [searchAddress, setSearchAddress] = useState('');
+  const [analysis, setAnalysis] = useState<WalletAnalysis | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleAnalyze = async () => {
+    if (!searchAddress.trim()) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await analyzeWallet(searchAddress.trim());
+      setAnalysis(result);
+    } catch (err) {
+      setError('Failed to analyze wallet. Please check the address and try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -21,11 +42,52 @@ export function WalletClarity() {
             onChange={(e) => setSearchAddress(e.target.value)}
             className="flex-1 bg-transparent text-white placeholder-slate-500 outline-none"
           />
-          <button className="px-6 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 rounded-full transition-all text-sm font-medium">
-            Analyze
+          <button
+            onClick={handleAnalyze}
+            disabled={loading || !searchAddress.trim()}
+            className="px-6 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 rounded-full transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loading ? 'Analyzing...' : 'Analyze'}
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
+          <p className="text-red-400">{error}</p>
+        </div>
+      )}
+
+      {analysis && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div className="bg-slate-900/50 backdrop-blur-lg border border-slate-800/50 rounded-xl p-4">
+            <div className="text-sm text-slate-400 mb-1">Total Balance</div>
+            <div className="text-2xl font-bold">{analysis.totalBalance.toFixed(2)} HBAR</div>
+            <div className={`text-xs mt-1 ${analysis.balanceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {analysis.balanceChange24h >= 0 ? '+' : ''}{analysis.balanceChange24h.toFixed(2)} (24h)
+            </div>
+          </div>
+
+          <div className="bg-slate-900/50 backdrop-blur-lg border border-slate-800/50 rounded-xl p-4">
+            <div className="text-sm text-slate-400 mb-1">Transactions</div>
+            <div className="text-2xl font-bold">{analysis.transactionCount}</div>
+            <div className="text-xs text-slate-500 mt-1">Total count</div>
+          </div>
+
+          <div className="bg-slate-900/50 backdrop-blur-lg border border-slate-800/50 rounded-xl p-4">
+            <div className="text-sm text-slate-400 mb-1">Interactions</div>
+            <div className="text-2xl font-bold">{analysis.uniqueInteractions}</div>
+            <div className="text-xs text-slate-500 mt-1">Unique accounts</div>
+          </div>
+
+          <div className="bg-slate-900/50 backdrop-blur-lg border border-slate-800/50 rounded-xl p-4">
+            <div className="text-sm text-slate-400 mb-1">Risk Score</div>
+            <div className="text-2xl font-bold">{analysis.riskScore}</div>
+            <div className="text-xs text-slate-500 mt-1">Out of 100</div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-slate-900/50 backdrop-blur-lg border border-slate-800/50 rounded-2xl p-6">
@@ -66,80 +128,55 @@ export function WalletClarity() {
             <Sparkles className="w-5 h-5 text-cyan-400" />
             AI Insights
           </h3>
-          <div className="space-y-4">
-            <div className="p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-medium mb-1">Unusual Activity Detected</div>
-                  <div className="text-sm text-slate-400">
-                    Your main wallet received 500 HBAR from a new address. Transaction verified on Hedera network.
-                  </div>
-                  <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    2 hours ago
+          {analysis && analysis.insights.length > 0 ? (
+            <div className="space-y-3">
+              {analysis.insights.map((insight, i) => (
+                <div key={i} className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-slate-300">{insight}</div>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
+          ) : (
+            <div className="text-center py-8 text-slate-400">
+              <Sparkles className="w-12 h-12 mx-auto mb-3 text-slate-600" />
+              <p>Analyze a wallet to see AI-powered insights</p>
+            </div>
+          )}
+        </div>
+      </div>
 
-            <div className="p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl">
-              <div className="flex items-start gap-3">
-                <TrendingUp className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-medium mb-1">Portfolio Growing</div>
-                  <div className="text-sm text-slate-400">
-                    Your total portfolio value increased by 12% this week across all tracked wallets.
-                  </div>
-                  <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    1 day ago
-                  </div>
-                </div>
-              </div>
-            </div>
+      {analysis && analysis.recentActivity.length > 0 && (
+        <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-lg border border-slate-800/50 rounded-2xl p-6 sm:p-8">
+          <h3 className="text-xl font-semibold mb-6">Recent Activity</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-sm text-slate-400 border-b border-slate-800">
+                  <th className="pb-3 font-medium">Type</th>
+                  <th className="pb-3 font-medium">Description</th>
+                  <th className="pb-3 font-medium">Amount</th>
+                  <th className="pb-3 font-medium">Time</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                {analysis.recentActivity.map((activity, i) => (
+                  <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                    <td className="py-4">{activity.type}</td>
+                    <td className="py-4">{activity.description}</td>
+                    <td className={`py-4 font-semibold ${activity.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {activity.amount >= 0 ? '+' : ''}{activity.amount.toFixed(2)} HBAR
+                    </td>
+                    <td className="py-4 text-slate-400 text-xs">{new Date(activity.timestamp).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
-
-      <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-lg border border-slate-800/50 rounded-2xl p-6 sm:p-8">
-        <h3 className="text-xl font-semibold mb-6">Recent Transactions</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-sm text-slate-400 border-b border-slate-800">
-                <th className="pb-3 font-medium">Type</th>
-                <th className="pb-3 font-medium">From/To</th>
-                <th className="pb-3 font-medium">Amount</th>
-                <th className="pb-3 font-medium">Time</th>
-                <th className="pb-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm">
-              {[
-                { type: 'Received', address: '0.0.98765', amount: '+500 HBAR', time: '2h ago', status: 'Success' },
-                { type: 'Sent', address: '0.0.54321', amount: '-150 HBAR', time: '5h ago', status: 'Success' },
-                { type: 'Token Transfer', address: '0.0.11111', amount: '+1000 USDC', time: '1d ago', status: 'Success' },
-                { type: 'Received', address: '0.0.22222', amount: '+75 HBAR', time: '2d ago', status: 'Success' },
-              ].map((tx, i) => (
-                <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                  <td className="py-4">{tx.type}</td>
-                  <td className="py-4 font-mono text-xs">{tx.address}</td>
-                  <td className={`py-4 font-semibold ${tx.amount.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>
-                    {tx.amount}
-                  </td>
-                  <td className="py-4 text-slate-400">{tx.time}</td>
-                  <td className="py-4">
-                    <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">
-                      {tx.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
