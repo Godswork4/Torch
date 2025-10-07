@@ -1,32 +1,28 @@
 import { useState } from 'react';
-import { Flame, Mail, Calendar, Sparkles, TrendingUp, Settings as SettingsIcon, Menu, X } from 'lucide-react';
-import { LandingPage } from './components/LandingPage';
+import { Flame, Calendar, Sparkles, TrendingUp, Settings as SettingsIcon, Menu, X } from 'lucide-react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Login } from './components/Login';
 import { WalletClarity } from './components/WalletClarity';
 import { TaskManager } from './components/TaskManager';
 import { Insights } from './components/Insights';
 import { Settings } from './components/Settings';
 import { DashboardContent } from './components/DashboardContent';
 
-function App() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState('');
+function AppContent() {
+  const { user, profile, loading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleConnect = () => {
-    const mockWalletAddress = '0.0.12345';
-    setWalletAddress(mockWalletAddress);
-    setIsConnected(true);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400"></div>
+      </div>
+    );
+  }
 
-  const handleDisconnect = () => {
-    setWalletAddress('');
-    setIsConnected(false);
-    setActiveTab('dashboard');
-  };
-
-  if (!isConnected) {
-    return <LandingPage onConnect={handleConnect} />;
+  if (!user) {
+    return <Login />;
   }
 
   const menuItems = [
@@ -55,44 +51,32 @@ function App() {
             </button>
 
             <div className="hidden lg:flex items-center gap-4">
-              <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-full text-sm">
-                <span className="text-slate-400">100 HBAR</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-slate-400">200 USC</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-slate-400">500 USDT</span>
-              </div>
               <div className="flex items-center gap-2 px-4 py-2 bg-cyan-500/10 border border-cyan-500/30 rounded-full">
                 <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium">Connected</span>
+                <span className="text-sm font-medium">{profile?.full_name || 'User'}</span>
               </div>
               <button
-                onClick={handleDisconnect}
+                onClick={signOut}
                 className="px-4 py-2 text-sm text-slate-300 hover:text-white transition-colors"
               >
-                Disconnect
+                Sign Out
               </button>
             </div>
           </div>
 
           {mobileMenuOpen && (
             <div className="lg:hidden py-4 border-t border-slate-800/50">
-              <div className="flex flex-col gap-2 mb-4">
-                <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-lg text-sm">
-                  <span className="text-slate-400">100 HBAR • 200 USC • 500 USDT</span>
+              <div className="flex items-center justify-between px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium">{profile?.full_name || 'User'}</span>
                 </div>
-                <div className="flex items-center justify-between px-4 py-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium">Connected</span>
-                  </div>
-                  <button
-                    onClick={handleDisconnect}
-                    className="text-sm text-slate-300"
-                  >
-                    Disconnect
-                  </button>
-                </div>
+                <button
+                  onClick={signOut}
+                  className="text-sm text-slate-300"
+                >
+                  Sign Out
+                </button>
               </div>
             </div>
           )}
@@ -108,9 +92,12 @@ function App() {
             <div className="w-20 h-20 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-full flex items-center justify-center mb-4 border border-cyan-500/30">
               <Flame className="w-10 h-10 text-cyan-400" />
             </div>
-            <span className="text-sm text-slate-400 font-mono">
-              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-            </span>
+            <span className="text-sm text-white font-medium mb-1">{profile?.full_name || 'User'}</span>
+            {profile?.wallet_address && (
+              <span className="text-xs text-slate-400 font-mono">
+                {profile.wallet_address}
+              </span>
+            )}
           </div>
 
           <nav className="flex-1 px-4">
@@ -139,9 +126,16 @@ function App() {
           </nav>
 
           <div className="p-4 border-t border-slate-800/50">
-            <div className="text-xs text-slate-500 flex items-center gap-2">
-              <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
-              <span>Hedera Account: {walletAddress}</span>
+            <div className="text-xs text-slate-500">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span>Beta Testing Mode</span>
+              </div>
+              {profile?.wallet_address && (
+                <div className="mt-2 p-2 bg-slate-800/50 rounded-lg">
+                  <span className="font-mono text-xs break-all">{profile.wallet_address}</span>
+                </div>
+              )}
             </div>
           </div>
         </aside>
@@ -162,6 +156,14 @@ function App() {
         </main>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
